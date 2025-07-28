@@ -113,12 +113,12 @@ document.addEventListener('DOMContentLoaded', function() {
 
       // Event listeners universal (pointer events)
       canvas.addEventListener('pointerdown', (e) => {
-        e.preventDefault();
+        // Jangan pakai preventDefault di pointerdown, agar stylus/touch tidak terganggu
         const { x, y } = getPointerPos(e);
         isDrawing = true;
         lastX = x;
         lastY = y;
-        canvas.setPointerCapture(e.pointerId);
+        try { canvas.setPointerCapture(e.pointerId); } catch (err) {}
       });
 
       canvas.addEventListener('pointermove', (e) => {
@@ -128,13 +128,35 @@ document.addEventListener('DOMContentLoaded', function() {
 
       canvas.addEventListener('pointerup', (e) => {
         isDrawing = false;
-        canvas.releasePointerCapture(e.pointerId);
+        try { canvas.releasePointerCapture(e.pointerId); } catch (err) {}
       });
       canvas.addEventListener('pointerout', () => { isDrawing = false; });
 
-      // Optional: support touch events for legacy devices (prevent scrolling)
-      canvas.addEventListener('touchstart', e => e.preventDefault(), { passive: false });
-      canvas.addEventListener('touchmove', e => e.preventDefault(), { passive: false });
+      // Fallback: support touch events jika pointer event tidak didukung (untuk browser lama)
+      if (!window.PointerEvent) {
+        let ongoingTouch = false;
+        canvas.addEventListener('touchstart', function(e) {
+          e.preventDefault();
+          const { x, y } = getPointerPos(e);
+          isDrawing = true;
+          lastX = x;
+          lastY = y;
+          ongoingTouch = true;
+        }, { passive: false });
+        canvas.addEventListener('touchmove', function(e) {
+          e.preventDefault();
+          if (!isDrawing || !ongoingTouch) return;
+          draw(e);
+        }, { passive: false });
+        canvas.addEventListener('touchend', function(e) {
+          isDrawing = false;
+          ongoingTouch = false;
+        });
+        canvas.addEventListener('touchcancel', function(e) {
+          isDrawing = false;
+          ongoingTouch = false;
+        });
+      }
 
       // Pilih warna
       colors.forEach(color => {
