@@ -71,17 +71,30 @@ document.addEventListener('DOMContentLoaded', function() {
         ctx.drawImage(coloredLayer, 0, 0);
       }
 
-      // Fungsi menggambar
+      // Fungsi menggambar universal (pointer)
+      function getPointerPos(e) {
+        const rect = canvas.getBoundingClientRect();
+        let clientX, clientY;
+        if (e.touches && e.touches.length > 0) {
+          clientX = e.touches[0].clientX;
+          clientY = e.touches[0].clientY;
+        } else {
+          clientX = e.clientX;
+          clientY = e.clientY;
+        }
+        return {
+          x: clientX - rect.left,
+          y: clientY - rect.top
+        };
+      }
+
       function draw(e) {
         if (!isDrawing) return;
-        const rect = canvas.getBoundingClientRect();
-        const x = (e.clientX - rect.left);
-        const y = (e.clientY - rect.top);
+        const { x, y } = getPointerPos(e);
         const colorCtx = coloredLayer.getContext('2d');
         colorCtx.lineJoin = 'round';
         colorCtx.lineCap = 'round';
         if (isErasing) {
-          // Hapus hanya di coloredLayer
           colorCtx.globalCompositeOperation = 'destination-out';
         } else {
           colorCtx.globalCompositeOperation = 'source-over';
@@ -98,22 +111,30 @@ document.addEventListener('DOMContentLoaded', function() {
         drawLayers();
       }
 
-      // Event listeners untuk menggambar saja
-      canvas.addEventListener('mousedown', (e) => {
-        const rect = canvas.getBoundingClientRect();
-        const x = (e.clientX - rect.left);
-        const y = (e.clientY - rect.top);
+      // Event listeners universal (pointer events)
+      canvas.addEventListener('pointerdown', (e) => {
+        e.preventDefault();
+        const { x, y } = getPointerPos(e);
         isDrawing = true;
         lastX = x;
         lastY = y;
+        canvas.setPointerCapture(e.pointerId);
       });
 
-      canvas.addEventListener('mousemove', (e) => {
+      canvas.addEventListener('pointermove', (e) => {
+        if (!isDrawing) return;
         draw(e);
       });
 
-      canvas.addEventListener('mouseup', () => { isDrawing = false; });
-      canvas.addEventListener('mouseout', () => { isDrawing = false; });
+      canvas.addEventListener('pointerup', (e) => {
+        isDrawing = false;
+        canvas.releasePointerCapture(e.pointerId);
+      });
+      canvas.addEventListener('pointerout', () => { isDrawing = false; });
+
+      // Optional: support touch events for legacy devices (prevent scrolling)
+      canvas.addEventListener('touchstart', e => e.preventDefault(), { passive: false });
+      canvas.addEventListener('touchmove', e => e.preventDefault(), { passive: false });
 
       // Pilih warna
       colors.forEach(color => {
