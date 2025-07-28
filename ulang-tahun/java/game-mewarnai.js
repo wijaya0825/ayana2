@@ -112,8 +112,10 @@ document.addEventListener('DOMContentLoaded', function() {
       }
 
       // Event listeners universal (pointer events)
+
+      // Prevent scroll/geser layar saat menggambar di HP (touch)
       canvas.addEventListener('pointerdown', (e) => {
-        // Jangan pakai preventDefault di pointerdown, agar stylus/touch tidak terganggu
+        if (e.pointerType === 'touch') e.preventDefault();
         const { x, y } = getPointerPos(e);
         isDrawing = true;
         lastX = x;
@@ -122,6 +124,7 @@ document.addEventListener('DOMContentLoaded', function() {
       });
 
       canvas.addEventListener('pointermove', (e) => {
+        if (e.pointerType === 'touch') e.preventDefault();
         if (!isDrawing) return;
         draw(e);
       });
